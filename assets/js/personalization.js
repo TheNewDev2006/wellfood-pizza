@@ -94,4 +94,44 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
     window.Personalization = { getData: getUrlParams, apply: applyPersonalization, defaults: DEFAULTS, paramMap: PARAM_MAP };
+
+    /* Cynix: Standardize navbar and inject data-personalize attributes if missing */
+    (function(){
+        function ensureNav() {
+            try {
+                const nav = document.querySelector('nav.main-menu');
+                if (!nav) return;
+                // Build canonical nav
+                const canon = document.createElement('nav');
+                canon.className = 'main-menu navbar-expand-lg';
+                canon.innerHTML = '\n<div class="navbar-header py-10">\n  <div class="mobile-logo">\n    <a href="/">\n      <span class="logo-text" data-personalize="business_name" style="font-size:20px;font-weight:bold;color:inherit"></span>\n    </a>\n  </div>\n  <button type="button" class="navbar-toggle" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">\n    <span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>\n  </button>\n</div>\n<div class="navbar-collapse collapse clearfix">\n  <ul class="navigation clearfix">\n    <li><a href="/">Home</a></li>\n    <li><a href="/menu-restaurant">Menu</a></li>\n    <li><a href="/about">About</a></li>\n    <li><a href="/gallery">Gallery</a></li>\n    <li><a href="/contact">Contact</a></li>\n  </ul>\n</div>\n';
+                nav.parentNode.replaceChild(canon, nav);
+            } catch (e) { /* ignore */ }
+        }
+        function injectPersonalizeAttrs() {
+            try {
+                // Logo text spans
+                document.querySelectorAll('.logo-text, .header-logo, .mobile-logo').forEach(el => {
+                    if (el.setAttribute && !el.hasAttribute('data-personalize')) el.setAttribute('data-personalize', 'business_name');
+                });
+                // phone anchors
+                document.querySelectorAll('a[href^="tel:"]').forEach(a => { if (!a.hasAttribute('data-personalize')) a.setAttribute('data-personalize', 'phone'); });
+                // email anchors
+                document.querySelectorAll('a[href^="mailto:"]').forEach(a => { if (!a.hasAttribute('data-personalize')) a.setAttribute('data-personalize', 'email'); });
+                // footer address
+                document.querySelectorAll('.footer-contact, .footer-address, .address').forEach(el => { if (!el.hasAttribute('data-personalize')) el.setAttribute('data-personalize','address'); });
+            } catch (e) {}
+        }
+        function runOnce() {
+            ensureNav();
+            injectPersonalizeAttrs();
+            // apply personalization again to newly-added attributes
+            if (window.Personalization && typeof window.Personalization.getData === 'function') {
+                const d = window.Personalization.getData();
+                if (window.Personalization.apply) window.Personalization.apply(d);
+            }
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', runOnce);
+        else runOnce();
+    })();
 })();
